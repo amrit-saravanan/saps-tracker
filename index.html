@@ -56,6 +56,19 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,49,80,.5);vertical-align:mid
 .exist-y{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3);}
 .exist-n{background:rgba(168,85,247,.12);color:#c084fc;border:1px solid rgba(168,85,247,.3);}
 .exist-p{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.3);}
+/* Kaizen tab */
+.tab.kaizen-tab{color:#f59e0b;}
+.tab.kaizen-tab.active{color:#f59e0b;border-bottom-color:#f59e0b;}
+.kaizen-wrap{max-width:640px;}
+.kaizen-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 22px;margin-bottom:16px;}
+.kaizen-hint{color:var(--muted);font-size:12px;line-height:1.7;margin-bottom:14px;}
+.kaizen-examples{color:var(--muted);font-size:11px;line-height:1.8;background:var(--surface2);border-radius:6px;padding:10px 14px;margin-bottom:14px;border-left:3px solid var(--border);}
+.kaizen-examples span{display:block;}
+.kaizen-ta{width:100%;height:130px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-size:12px;resize:vertical;font-family:inherit;line-height:1.6;transition:border-color .15s;}
+.kaizen-ta:focus{outline:none;border-color:var(--amber);}
+.kaizen-send{margin-top:10px;background:var(--amber);border:none;color:#000;padding:8px 22px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;transition:opacity .15s;}
+.kaizen-send:hover{opacity:.85;}
+.kaizen-ok{display:none;color:var(--green);font-size:11px;margin-top:8px;font-weight:600;}
 /* Detail rows */
 .detail-row td{padding:0;background:var(--bg);border-bottom:1px solid var(--border);}
 .detail-card{padding:14px 20px 14px 32px;}
@@ -218,15 +231,66 @@ function buildWeek(data){
   return h;
 }
 
-const TABS=[{k:'dashboard',l:'📊 Dashboard'},{k:'week',l:'📅 This Week'},{k:'senthil',l:'Senthil'},{k:'saravana',l:'TSK'},{k:'vijay',l:'VK'},{k:'shanmuga',l:'GS'}];
+const TABS=[
+  {k:'dashboard',l:'📊 Dashboard'},
+  {k:'week',l:'📅 This Week'},
+  {k:'senthil',l:'Senthil'},
+  {k:'saravana',l:'TSK'},
+  {k:'vijay',l:'VK'},
+  {k:'shanmuga',l:'GS'},
+  {k:'kaizen',l:'🔄 Kaizen',cls:'kaizen-tab'}
+];
 let cur='dashboard';
 
-function renderTabs(){document.getElementById('tabs-row').innerHTML=TABS.map(t=>'<div class="tab'+(cur===t.k?' active':'')+'" onclick="sw(\''+t.k+'\')">'+t.l+'</div>').join('');}
+function renderTabs(){document.getElementById('tabs-row').innerHTML=TABS.map(t=>'<div class="tab'+(cur===t.k?' active':'')+' '+(t.cls||'')+'" onclick="sw(\''+t.k+'\')">'+t.l+'</div>').join('');}
 function sw(k){cur=k;_ri=0;renderTabs();render(window._d||EMBEDDED);}
 
+function buildKaizen(){
+  return `<div class="kaizen-wrap">
+    <div class="section-header" style="margin-bottom:16px">
+      <span class="section-title">🔄 Kaizen — Continuous Improvement</span>
+    </div>
+    <div class="kaizen-box">
+      <div class="dl" style="margin-bottom:10px">What to log here</div>
+      <div class="kaizen-hint">Anything you notice while using the tracker each day. No need to be formal — just type it and send.</div>
+      <div class="kaizen-examples">
+        <span>→ "LO-015 stage should be price finalised not quoted"</span>
+        <span>→ "VK's Cosmo Labels — follow up date passed, check what happened"</span>
+        <span>→ "Need to see territory in the main table"</span>
+        <span>→ "Senthil hasn't updated 3 customers in 2 weeks"</span>
+        <span>→ "Can we add a column for number of visits?"</span>
+      </div>
+      <textarea id="kaizen-input" class="kaizen-ta" placeholder="Type your observation here…"></textarea>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:10px">
+        <button class="kaizen-send" onclick="sendKaizen()">Send to Claude →</button>
+        <div id="kaizen-ok" class="kaizen-ok">✓ Sent — Claude will process this</div>
+      </div>
+    </div>
+    <div class="kaizen-box" style="border-color:rgba(245,158,11,.2)">
+      <div class="dl" style="margin-bottom:10px;color:var(--amber)">How this works</div>
+      <div style="color:var(--muted);font-size:12px;line-height:1.8">
+        <div>1. Type any observation, correction, or improvement idea above</div>
+        <div>2. Click <strong style="color:var(--text)">Send to Claude</strong> — it goes directly to the Cowork chat</div>
+        <div>3. Claude processes it and updates the tracker + data file</div>
+        <div>4. Refresh to see the changes</div>
+      </div>
+    </div>
+  </div>`;
+}
+function sendKaizen(){
+  const txt=document.getElementById('kaizen-input').value.trim();
+  if(!txt)return;
+  if(typeof sendPrompt==='function'){
+    sendPrompt('📋 Kaizen: '+txt);
+    document.getElementById('kaizen-ok').style.display='block';
+    document.getElementById('kaizen-input').value='';
+    setTimeout(()=>{const el=document.getElementById('kaizen-ok');if(el)el.style.display='none';},4000);
+  }
+}
 function render(data){
   window._d=data;
   const el=document.getElementById('main');
+  if(cur==='kaizen'){el.innerHTML=buildKaizen();return;}
   if(cur==='week'){el.innerHTML=buildWeek(data);return;}
   const ml=MONTHS[+CUR_MONTH.split('-')[1]-1]+' '+CUR_MONTH.split('-')[0];
 
@@ -276,7 +340,7 @@ function render(data){
     '<div class="section"><div class="section-header"><span class="section-title">📋 Live Pipeline</span><span class="sbadge live">'+live.length+'</span></div>'+(live.length?tbl(live,'l-'+rk,true):'<div class="empty-state"><p>No live opportunities</p></div>')+'</div>';
 }
 
-const GIST_URL='https://gist.githubusercontent.com/amrit-saravanan/9685648e13fadd141b1c461b41d3b0f0/raw/enquiries.json';
+const GIST_URL='https://gist.githubusercontent.com/amrit-saravanan/790e68dcdd34284fde0270c8e4633a1b/raw/enquiries.json';
 async function doRefresh(){
   document.getElementById('upd').textContent='Refreshing…';
   try{const r=await fetch(GIST_URL+'?_='+Date.now());if(r.ok){const d=await r.json();render(d);window._d=d;document.getElementById('upd').textContent='Updated: '+d.lastUpdated;return;}}catch(e){}
