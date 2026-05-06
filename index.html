@@ -340,7 +340,7 @@ function render(data){
     '<div class="section"><div class="section-header"><span class="section-title">📋 Live Pipeline</span><span class="sbadge live">'+live.length+'</span></div>'+(live.length?tbl(live,'l-'+rk,true):'<div class="empty-state"><p>No live opportunities</p></div>')+'</div>';
 }
 
-const GIST_URL='https://gist.githubusercontent.com/amrit-saravanan/790e68dcdd34284fde0270c8e4633a1b/raw/enquiries.json';
+const GIST_URL='https://gist.githubusercontent.com/amrit-saravanan/394ac598e92df4264f4caae197234e9c/raw/enquiries.json';
 async function doRefresh(){
   document.getElementById('upd').textContent='Refreshing…';
   try{const r=await fetch(GIST_URL+'?_='+Date.now());if(r.ok){const d=await r.json();render(d);window._d=d;document.getElementById('upd').textContent='Updated: '+d.lastUpdated;return;}}catch(e){}
