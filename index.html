@@ -114,6 +114,8 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,49,80,.5);vertical-align:mid
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.stat-card{cursor:pointer;}
+.stat-card.sec-active{border-color:var(--accent);background:rgba(79,142,247,.15);}
 @media(max-width:700px){
   .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   table{min-width:560px;}
@@ -123,6 +125,9 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,49,80,.5);vertical-align:mid
   .stat-value{font-size:16px;}
   .detail-grid{grid-template-columns:1fr;}
   .week-row{grid-template-columns:72px 1fr 48px;gap:8px;}
+  .detail-card .dc-inner{padding:10px 10px;}
+  .ds{padding:9px 10px;margin-bottom:8px;}
+  .dl{font-size:10px;margin-bottom:6px;}
 }
 </style>
 </head>
@@ -173,8 +178,11 @@ function dataRow(e,pfx,showCR){
   const ar=e.needsAmritReview?' <span class="hot-tag" style="background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.4);color:#fca5a5">⚠ Review</span>':'';
   const qrl2=(e.quoteRevisionLog?.length||0)>0?' <span class="hot-tag" style="background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#fbbf24">📋 Rev</span>':'';
   const ex=e.customerProfile?.isExisting;const existTag=ex===true?' <span class="exist-badge exist-y">Existing</span>':ex===false?' <span class="exist-badge exist-n">New</span>':ex==='pending'?' <span class="exist-badge exist-p">? Confirm</span>':'';
-  const stRaw=e.pendingActions?.nextAction||e.status||'';
-  const st=stRaw.length>78?stRaw.substring(0,78)+'…':(stRaw||'—');
+  const latI=(e.interactions||[])[0];
+  const stOut=(latI?.outcome||e.status||'').trim();
+  const stNxt=(e.pendingActions?.nextAction||latI?.next_action||'').trim();
+  const stRaw=(stOut&&stNxt&&stOut.toLowerCase()!==stNxt.toLowerCase())?stOut+'. Next: '+stNxt:(stNxt||stOut||e.status||'');
+  const st=stRaw.length>88?stRaw.substring(0,88)+'…':(stRaw||'—');
   return'<tr class="data-row" onclick="toggleRow(\''+id+'\')"><td class="col-cust"><span class="caret" id="c-'+id+'">▶</span> '+e.customer+sup+hot+ar+qrl2+existTag+'</td><td class="col-lc lc-cell">'+lc+'</td><td class="col-stat">'+st+'</td><td class="col-mod mod-cell">'+model+'</td><td class="col-rep"><span class="rep-badge">'+(RL[rk]||e.rep)+'</span></td><td class="col-stg">'+stageChip(e.stage)+'</td></tr><tr class="detail-row" id="'+id+'" style="display:none"><td colspan="6">'+detailCard(e,showCR)+'</td></tr>';
 }
 
@@ -300,24 +308,57 @@ function detailCard(e,showCR){
   // Interaction timeline renderer
   function intCard(it,isCurrent){
     var achStr='';
-    if(it.objective_achieved===true)achStr='<span style="font-size:10px;color:var(--green);margin-left:6px">✓ achieved</span>';
-    else if(it.objective_achieved==='partial')achStr='<span style="font-size:10px;color:var(--amber);margin-left:6px">~ partial</span>';
-    else if(it.objective_achieved===false)achStr='<span style="font-size:10px;color:#f87171;margin-left:6px">✗ not achieved</span>';
+    if(it.objective_achieved===true)achStr=' <span style="font-size:10px;color:var(--green)">✓ achieved</span>';
+    else if(it.objective_achieved==='partial')achStr=' <span style="font-size:10px;color:var(--amber)">~ partial</span>';
+    else if(it.objective_achieved===false)achStr=' <span style="font-size:10px;color:#f87171">✗ not achieved</span>';
+    if(!isCurrent){
+      // Compact one-liner for older visits
+      var outcome=it.outcome||it.notes||'';
+      var brief=outcome||it.objective||'';
+      return'<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border)">'
+        +'<span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:44px">'+fmtD(it.date)+'</span>'
+        +'<span style="font-size:12px;color:var(--text);flex:1">'+(brief.length>100?brief.substring(0,100)+'…':brief)+'</span>'
+        +achStr
+        +'</div>';
+    }
     var body='';
-    if(it.objective)body+='<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Objective</span><div style="font-size:12px;color:var(--text);margin-top:2px">'+it.objective+achStr+'</div></div>';
+    if(it.objective)body+='<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Objective</span><div style="font-size:12px;margin-top:3px">'+it.objective+achStr+'</div></div>';
     var outcome=it.outcome||it.notes||'';
-    if(outcome)body+='<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Outcome</span><div style="font-size:12px;color:var(--text);margin-top:2px">'+outcome+'</div></div>';
-    if(it.next_action)body+='<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.04em">Next Action</span><div style="font-size:12px;color:var(--text);margin-top:2px">'+it.next_action+'</div></div>';
+    if(outcome&&outcome!==it.next_action)body+='<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Outcome</span><div style="font-size:12px;margin-top:3px">'+outcome+'</div></div>';
+    if(it.next_action)body+='<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.04em">Next Action</span><div style="font-size:12px;margin-top:3px">'+it.next_action+'</div></div>';
     var pos=it.positives||[];var neg=it.negatives||[];
-    if(pos.length)body+='<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.04em">✓ Positives</span><div style="font-size:11px;color:var(--text);margin-top:2px">'+pos.map(function(p){return'• '+p;}).join('<br>')+'</div></div>';
-    if(neg.length)body+='<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.04em">✗ Issues</span><div style="font-size:11px;color:var(--text);margin-top:2px">'+neg.map(function(n){return'• '+n;}).join('<br>')+'</div></div>';
-    return'<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:7px'+(isCurrent?';border-color:rgba(79,142,247,.4)':'')+'"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:11px;color:var(--muted)">'+fmtD(it.date)+'</span><span class="int-type">'+it.type+'</span>'+(isCurrent?'<span style="font-size:10px;color:var(--accent);font-weight:600">latest</span>':'')+'</div>'+body+'</div>';
+    if(pos.length)body+='<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.04em">✓ Positives</span><ul style="margin:4px 0 0 16px;padding:0">'+pos.map(function(p){return'<li style="font-size:12px;color:var(--text);margin-bottom:3px">'+p+'</li>';}).join('')+'</ul></div>';
+    if(neg.length)body+='<div><span style="font-size:10px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.04em">✗ Issues / Blockers</span><ul style="margin:4px 0 0 16px;padding:0">'+neg.map(function(n){return'<li style="font-size:12px;color:var(--text);margin-bottom:3px">'+n+'</li>';}).join('')+'</ul></div>';
+    return'<div style="background:var(--surface2);border:1px solid rgba(79,142,247,.4);border-radius:8px;padding:10px 12px;margin-bottom:8px">'+body+'</div>';
   }
 
-  return'<div class="detail-card"><div class="dc-inner">'+arBanner+nxtHtml+cpHtml+isExHtml+(function(){var ints=e.interactions||[];var allIxs=ints.slice().reverse();if(!allIxs.length){allIxs=[{date:e.lastContact,type:vi+' '+vl,notes:e.status||'—',outcome:e.status||'—'}];}var rows='';var show=allIxs.slice(0,10);for(var ii=0;ii<show.length;ii++){rows+=intCard(show[ii],ii===0);}if(allIxs.length>10)rows+='<div class="hist-note">…and '+(allIxs.length-10)+' earlier visits</div>';return'<div class="ds"><div class="dl">📅 Interaction Timeline <span style="font-weight:400;color:var(--muted);font-size:11px">('+allIxs.length+' visit'+(allIxs.length!==1?'s':'')+')</span></div>'+rows+'</div>';})()+'<div class="ds"><div class="dl">🔧 Our Actions Pending</div>'+ourHtml+'<div style="margin-top:12px" class="dl">👤 Customer / External Blockers</div>'+custHtml+'</div>'+coachHtml+odecHtml+qrlogHtml+'<div class="ds"><div class="dl">📌 Follow-up</div><div><strong>Next:</strong> '+pf+'</div>'+af+ct+loc+'<div><strong>Rep:</strong> '+(RF[rk]||e.rep)+' · '+(e.territory||'')+'</div></div></div></div>';
+  return'<div class="detail-card"><div class="dc-inner">'+arBanner+nxtHtml+coachHtml+(function(){
+    // ── Latest visit: full detail ──
+    var ints=e.interactions||[];
+    var allIxs=ints.length?ints:[{date:e.lastContact,type:'📋 Interaction',notes:e.status||'—',outcome:e.status||'—'}];
+    var lat=allIxs[0];
+    return intCard(lat,true);
+  })()+
+  '<div class="ds"><div class="dl">🔧 Our Actions Pending</div>'+ourHtml+'<div style="margin-top:12px" class="dl">👤 Customer / External Blockers</div>'+custHtml+'</div>'+
+  (function(){
+    // ── Previous visits: compact one-liners ──
+    var ints=e.interactions||[];
+    if(ints.length<=1)return'';
+    var prev=ints.slice(1);
+    var rows=prev.map(function(it){return intCard(it,false);}).join('');
+    return'<div class="ds"><div class="dl">📅 Previous Visits <span style="font-weight:400;color:var(--muted);font-size:11px">('+prev.length+')</span></div><div style="padding-top:2px">'+rows+'</div></div>';
+  })()+
+  isExHtml+
+  odecHtml+qrlogHtml+
+  cpHtml+
+  '<div class="ds"><div class="dl">📌 Follow-up</div><div><strong>Next:</strong> '+pf+'</div>'+af+ct+loc+'<div><strong>Rep:</strong> '+(RF[rk]||e.rep)+' · '+(e.territory||'')+'</div></div>'+
+  '</div></div>';
 }
 
 
+let _secF=new Set();
+function filterSec(sec){if(_secF.has(sec))_secF.delete(sec);else _secF.add(sec);applySecF();}
+function applySecF(){document.querySelectorAll('.section[data-sec]').forEach(function(el){el.style.display=(_secF.size===0||_secF.has(el.dataset.sec))?'':'none';});document.querySelectorAll('.stat-card[data-sec]').forEach(function(el){el.classList.toggle('sec-active',_secF.has(el.dataset.sec));});}
 function confirmExisting(id,val){
   const d=window._d||EMBEDDED;
   const secs=['committedOrders','expectedThisMonth','liveOpportunities','opportunitiesGenerated','ordersWon','ordersLost'];
@@ -638,22 +679,22 @@ function render(data){
     const odCnt=[...comm,...expPlusHot,...live,...(data.opportunitiesGenerated||[])].filter(e=>e.plannedFollowUp&&e.plannedFollowUp<TODAY).length;
     el.innerHTML=
       '<div class="stats-bar">'+
-      '<div class="stat-card"><div class="stat-label">Committed</div><div class="stat-value sv-c">'+comm.length+'</div></div>'+
-      '<div class="stat-card"><div class="stat-label">Expected</div><div class="stat-value sv-e">'+expPlusHot.length+'</div></div>'+
-      '<div class="stat-card"><div class="stat-label">Won</div><div class="stat-value sv-w">'+won.length+'</div></div>'+
-      '<div class="stat-card"><div class="stat-label">Lost</div><div class="stat-value sv-lo">'+lost.length+'</div></div>'+
-      '<div class="stat-card"><div class="stat-label">Generated</div><div class="stat-value sv-g">'+genQ+'</div></div>'+
-      '<div class="stat-card"><div class="stat-label">Warm Opp.</div><div class="stat-value sv-l">'+warmQ+'</div></div>'+
+      '<div class="stat-card" data-sec="committed" onclick="filterSec(\'committed\')"><div class="stat-label">Committed</div><div class="stat-value sv-c">'+comm.length+'</div></div>'+
+      '<div class="stat-card" data-sec="expected" onclick="filterSec(\'expected\')"><div class="stat-label">Expected</div><div class="stat-value sv-e">'+expPlusHot.length+'</div></div>'+
+      '<div class="stat-card" data-sec="won" onclick="filterSec(\'won\')"><div class="stat-label">Won</div><div class="stat-value sv-w">'+won.length+'</div></div>'+
+      '<div class="stat-card" data-sec="lost" onclick="filterSec(\'lost\')"><div class="stat-label">Lost</div><div class="stat-value sv-lo">'+lost.length+'</div></div>'+
+      '<div class="stat-card" data-sec="generated" onclick="filterSec(\'generated\')"><div class="stat-label">Generated</div><div class="stat-value sv-g">'+genQ+'</div></div>'+
+      '<div class="stat-card" data-sec="warm" onclick="filterSec(\'warm\')"><div class="stat-label">Warm Opp.</div><div class="stat-value sv-l">'+warmQ+'</div></div>'+
       '<div class="stat-card" style="cursor:pointer" onclick="switchTab(\'week\')"><div class="stat-label">Check Quotes</div><div class="stat-value" style="color:#a78bfa">'+(warmQ+genQ)+'</div></div>'+
       (odCnt?'<div class="stat-card" style="border-color:rgba(239,68,68,.4)"><div class="stat-label" style="color:#f87171">Overdue</div><div class="stat-value" style="color:#f87171">'+odCnt+'</div></div>':'')+
       '</div>'+
-      '<div class="section"><div class="section-header"><span class="section-title">🏆 Committed Orders</span><span class="sbadge committed">'+ml+' · '+comm.length+'</span></div>'+(comm.length?tbl(comm,'co',false):'<div class="empty-state"><p>No committed orders yet for '+ml+'.<br>Add entries manually each month.</p></div>')+'</div>'+
-      '<div class="section"><div class="section-header"><span class="section-title">🔥 Expected This Month</span><span class="sbadge expected">'+expPlusHot.length+' accounts'+(hot.length?' · '+hot.length+' 🔥 hot':'')+'</span></div>'+tbl(expPlusHot,'eo',false)+'</div>'+
-      '<div class="section"><div class="section-header"><span class="section-title">✅ Won in '+ml+'</span><span class="sbadge won">'+won.length+'</span></div>'+(won.length?tbl(won,'wn',false):'<div class="empty-state"><p>No orders won yet this month.</p></div>')+'</div>'+
-      '<div class="section"><div class="section-header"><span class="section-title">❌ Lost in '+ml+'</span><span class="sbadge lost">'+lost.length+'</span></div>'+(lost.length?tbl(lost,'ls',false):'<div class="empty-state"><p>No orders lost this month.</p></div>')+'</div>'+
-      '<div class="section"><div class="section-header"><span class="section-title">✨ Generated in '+ml+'</span><span class="sbadge generated">'+genQ+' quoted · '+gen.length+' total</span></div>'+tbl(gen,'gm',true)+'</div>'+
-      '<div class="section"><div class="section-header"><span class="section-title">🌡 Warm Opportunities</span><span class="sbadge warm">'+warmQ+' quoted · '+warm.length+' within 60 days'+(live.length-warm.length?' · '+(live.length-warm.length)+' longer-term':'')+'</span></div>'+tbl(warm,'lo',true)+'</div>';
-    return;
+      '<div class="section" data-sec="committed"><div class="section-header"><span class="section-title">🏆 Committed Orders</span><span class="sbadge committed">'+ml+' · '+comm.length+'</span></div>'+(comm.length?tbl(comm,'co',false):'<div class="empty-state"><p>No committed orders yet for '+ml+'.<br>Add entries manually each month.</p></div>')+'</div>'+
+      '<div class="section" data-sec="expected"><div class="section-header"><span class="section-title">🔥 Expected This Month</span><span class="sbadge expected">'+expPlusHot.length+' accounts'+(hot.length?' · '+hot.length+' 🔥 hot':'')+'</span></div>'+tbl(expPlusHot,'eo',false)+'</div>'+
+      '<div class="section" data-sec="won"><div class="section-header"><span class="section-title">✅ Won in '+ml+'</span><span class="sbadge won">'+won.length+'</span></div>'+(won.length?tbl(won,'wn',false):'<div class="empty-state"><p>No orders won yet this month.</p></div>')+'</div>'+
+      '<div class="section" data-sec="lost"><div class="section-header"><span class="section-title">❌ Lost in '+ml+'</span><span class="sbadge lost">'+lost.length+'</span></div>'+(lost.length?tbl(lost,'ls',false):'<div class="empty-state"><p>No orders lost this month.</p></div>')+'</div>'+
+      '<div class="section" data-sec="generated"><div class="section-header"><span class="section-title">✨ Generated in '+ml+'</span><span class="sbadge generated">'+genQ+' quoted · '+gen.length+' total</span></div>'+tbl(gen,'gm',true)+'</div>'+
+      '<div class="section" data-sec="warm"><div class="section-header"><span class="section-title">🌡 Warm Opportunities</span><span class="sbadge warm">'+warmQ+' quoted · '+warm.length+' within 60 days'+(live.length-warm.length?' · '+(live.length-warm.length)+' longer-term':'')+'</span></div>'+tbl(warm,'lo',true)+'</div>';
+    setTimeout(applySecF,0);return;
   }
 
   // SE tab
@@ -669,15 +710,16 @@ function render(data){
   const genQ=gen.filter(e=>QUOTED.includes(e.stage)).length;
   el.innerHTML=
     '<div class="stats-bar">'+
-    '<div class="stat-card"><div class="stat-label">Committed</div><div class="stat-value sv-c">'+comm.length+'</div></div>'+
-    '<div class="stat-card"><div class="stat-label">Expected</div><div class="stat-value sv-e">'+expPlusHot.length+'</div></div>'+
-    '<div class="stat-card"><div class="stat-label">Generated</div><div class="stat-value sv-g">'+genQ+'</div></div>'+
-    '<div class="stat-card"><div class="stat-label">Warm Opp.</div><div class="stat-value sv-l">'+warmQ+'</div></div>'+
+    '<div class="stat-card" data-sec="committed" onclick="filterSec(\'committed\')"><div class="stat-label">Committed</div><div class="stat-value sv-c">'+comm.length+'</div></div>'+
+    '<div class="stat-card" data-sec="expected" onclick="filterSec(\'expected\')"><div class="stat-label">Expected</div><div class="stat-value sv-e">'+expPlusHot.length+'</div></div>'+
+    '<div class="stat-card" data-sec="generated" onclick="filterSec(\'generated\')"><div class="stat-label">Generated</div><div class="stat-value sv-g">'+genQ+'</div></div>'+
+    '<div class="stat-card" data-sec="warm" onclick="filterSec(\'warm\')"><div class="stat-label">Warm Opp.</div><div class="stat-value sv-l">'+warmQ+'</div></div>'+
     '</div>'+
-    (comm.length?'<div class="section"><div class="section-header"><span class="section-title">🏆 Committed</span><span class="sbadge committed">'+comm.length+'</span></div>'+tbl(comm,'c-'+rk,false)+'</div>':'')+
-    '<div class="section"><div class="section-header"><span class="section-title">🔥 Expected This Month</span><span class="sbadge expected">'+expPlusHot.length+'</span></div>'+(expPlusHot.length?tbl(expPlusHot,'e-'+rk,false):'<div class="empty-state"><p>No expected orders this month</p></div>')+'</div>'+
-    '<div class="section"><div class="section-header"><span class="section-title">✨ Generated in '+ml+'</span><span class="sbadge generated">'+genQ+' quoted · '+gen.length+' total</span></div>'+(gen.length?tbl(gen,'g-'+rk,true):'<div class="empty-state"><p>No opportunities generated in '+ml+' yet</p></div>')+'</div>'+
-    '<div class="section"><div class="section-header"><span class="section-title">🌡 Warm Opportunities</span><span class="sbadge warm">'+warmQ+' quoted · '+warm.length+' within 60 days'+(live.length-warm.length?' · '+(live.length-warm.length)+' longer-term':'')+'</span></div>'+(warm.length?tbl(warm,'l-'+rk,true):'<div class="empty-state"><p>No warm opportunities (all follow-ups beyond 60 days)</p></div>')+'</div>';
+    (comm.length?'<div class="section" data-sec="committed"><div class="section-header"><span class="section-title">🏆 Committed</span><span class="sbadge committed">'+comm.length+'</span></div>'+tbl(comm,'c-'+rk,false)+'</div>':'')+
+    '<div class="section" data-sec="expected"><div class="section-header"><span class="section-title">🔥 Expected This Month</span><span class="sbadge expected">'+expPlusHot.length+'</span></div>'+(expPlusHot.length?tbl(expPlusHot,'e-'+rk,false):'<div class="empty-state"><p>No expected orders this month</p></div>')+'</div>'+
+    '<div class="section" data-sec="generated"><div class="section-header"><span class="section-title">✨ Generated in '+ml+'</span><span class="sbadge generated">'+genQ+' quoted · '+gen.length+' total</span></div>'+(gen.length?tbl(gen,'g-'+rk,true):'<div class="empty-state"><p>No opportunities generated in '+ml+' yet</p></div>')+'</div>'+
+    '<div class="section" data-sec="warm"><div class="section-header"><span class="section-title">🌡 Warm Opportunities</span><span class="sbadge warm">'+warmQ+' quoted · '+warm.length+' within 60 days'+(live.length-warm.length?' · '+(live.length-warm.length)+' longer-term':'')+'</span></div>'+(warm.length?tbl(warm,'l-'+rk,true):'<div class="empty-state"><p>No warm opportunities (all follow-ups beyond 60 days)</p></div>')+'</div>';
+  setTimeout(applySecF,0);
 }
 
 const GIST_URL='https://gist.githubusercontent.com/amrit-saravanan/394ac598e92df4264f4caae197234e9c/raw/enquiries.json';
