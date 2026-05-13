@@ -119,15 +119,20 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,49,80,.5);vertical-align:mid
 @media(max-width:700px){
   .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   table{min-width:560px;}
-  .content{padding:10px 10px;}
+  .content{padding:10px 8px;}
   .stats-bar{gap:6px;}
   .stat-card{min-width:70px;padding:8px 10px;}
   .stat-value{font-size:16px;}
   .detail-grid{grid-template-columns:1fr;}
-  .week-row{grid-template-columns:72px 1fr 48px;gap:8px;}
-  .detail-card .dc-inner{padding:10px 10px;}
-  .ds{padding:9px 10px;margin-bottom:8px;}
-  .dl{font-size:10px;margin-bottom:6px;}
+  /* overdue / this-week row: tiny name col, big details col */
+  .week-row{grid-template-columns:62px 68px 1fr 14px;gap:6px;}
+  .wc{font-size:11px;font-weight:600;word-break:break-word;}
+  .wa{font-size:11px;}
+  /* expanded detail card — cap all font sizes */
+  .detail-card .dc-inner{padding:8px 8px;font-size:11px;}.dc-inner [style*="font-size"]{font-size:11px!important;}
+  .ds{padding:8px 9px;margin-bottom:7px;}
+  .dl{font-size:9px;margin-bottom:5px;}
+  .dc-inner li{font-size:11px!important;}
 }
 </style>
 </head>
@@ -208,7 +213,7 @@ function detailCard(e,showCR){
   // Next action (most recent from pendingActions)
   const nxtAction=e.pendingActions?.nextAction;
   const nxtHtml=nxtAction
-    ?'<div style="background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.3);border-radius:8px;padding:10px 13px;margin-bottom:12px"><div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">→ Next Action</div><div style="font-size:12px;color:var(--text);line-height:1.5">'+nxtAction+'</div></div>'
+    ?'<div style="background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.3);border-radius:8px;padding:10px 12px;margin-bottom:10px"><div style="font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">→ Next Action</div><div style="font-size:11px;color:var(--text);line-height:1.5">'+nxtAction+'</div></div>'
     :'';
 
   // Amrit review required banner
