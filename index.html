@@ -124,15 +124,15 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,49,80,.5);vertical-align:mid
   .stat-card{min-width:70px;padding:8px 10px;}
   .stat-value{font-size:16px;}
   .detail-grid{grid-template-columns:1fr;}
-  /* overdue / this-week row: tiny name col, big details col */
   .week-row{grid-template-columns:62px 68px 1fr 14px;gap:6px;}
   .wc{font-size:11px;font-weight:600;word-break:break-word;}
   .wa{font-size:11px;}
-  /* expanded detail card — cap all font sizes */
-  .detail-card .dc-inner{padding:8px 8px;font-size:11px;}.dc-inner [style*="font-size"]{font-size:11px!important;}
+  /* force ALL text inside expanded cards to 11px — overrides every inline style */
+  .detail-card *{font-size:11px!important;line-height:1.4!important;}
+  .detail-card .dl{font-size:9px!important;margin-bottom:5px;}
+  .detail-card .dl span{font-size:9px!important;}
+  .detail-card{padding:6px 8px 6px 10px;}
   .ds{padding:8px 9px;margin-bottom:7px;}
-  .dl{font-size:9px;margin-bottom:5px;}
-  .dc-inner li{font-size:11px!important;}
 }
 </style>
 </head>
