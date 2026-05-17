@@ -128,11 +128,11 @@ td{padding:9px 12px;border-bottom:1px solid rgba(45,49,80,.5);vertical-align:mid
   .wc{font-size:11px;font-weight:600;word-break:break-word;}
   .wa{font-size:11px;}
   /* force ALL text inside expanded cards to 11px — overrides every inline style */
-  .detail-card{padding:6px 8px 6px 10px;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
-  .detail-card *{font-size:11px!important;line-height:1.4!important;}
+  .detail-card{padding:6px 8px 6px 10px;-webkit-text-size-adjust:100%;text-size-adjust:100%;overflow-x:hidden;max-width:100%;box-sizing:border-box;}
+  .detail-card *{font-size:11px!important;line-height:1.4!important;overflow-wrap:break-word;word-wrap:break-word;word-break:break-word;}
   .detail-card .dl{font-size:9px!important;margin-bottom:5px;}
   .detail-card .dl span{font-size:9px!important;}
-  .ds{padding:8px 9px;margin-bottom:7px;}
+  .ds{padding:8px 9px;margin-bottom:7px;overflow:hidden;}
 }
 </style>
 </head>
